@@ -203,26 +203,6 @@ async function loadConfiguration() {
 }
 ```
 
-#### For Java Applications
-
-```java
-import com.azure.identity.DefaultAzureCredentialBuilder;
-import com.azure.data.appconfiguration.ConfigurationClient;
-import com.azure.data.appconfiguration.ConfigurationClientBuilder;
-
-String endpoint = System.getenv("AppConfig:Endpoint");
-ConfigurationClient client = new ConfigurationClientBuilder()
-    .endpoint(endpoint)
-    .credential(new DefaultAzureCredentialBuilder().build())
-    .buildClient();
-
-// Load configuration
-client.listConfigurationSettings(null)
-    .forEach(setting -> {
-        System.setProperty(setting.getKey(), setting.getValue());
-    });
-```
-
 ## Best Practices
 
 ### Do's ✅
