@@ -41,21 +41,19 @@ graph LR
 #### For Plain Configuration Variables
 
 1. Navigate to your **App Configuration** resource in the Azure Portal
-2. Go to **Configuration Explorer**
+2. Go to **Configuration Management -> Configuration Explorer**
 3. Click **+ Create** → **Key-value**
 4. Enter the following:
-   - **Key**: A descriptive name (e.g., `AppSettings:DatabaseTimeout`)
-   - **Value**: The actual configuration value (e.g., `30`)
-   - **Content type** (optional): Leave blank or use `application/json` for complex values
-   - **Labels** (optional): Use for environment segmentation (e.g., `prod`, `dev`)
+   - **Key**: A descriptive name (e.g., `TEAMS_WEBHOOK_URL`)
+   - **Label**: Use for environment and apps segmentation (e.g., `name-service-prod`, `name-func-test`)
+   - **Content type** (optional): Leave blank
 5. Click **Apply**
 
 **Example Configuration Keys:**
 ```
-AppSettings:LogLevel = "Information"
-AppSettings:MaxRetries = "3"
-AppSettings:ApiBaseUrl = "https://api.example.com"
-Database:ConnectionTimeout = "30"
+SERVICE_URL = "https://test.url.com"
+PORT = "1234"
+APP_ENVIRONMENT = "prod"
 ```
 
 #### For Secret References
@@ -64,28 +62,27 @@ Database:ConnectionTimeout = "30"
 2. Go to **Secrets**
 3. Click **+ Generate/Import**
 4. Enter:
-   - **Name**: Secret identifier (e.g., `DbPassword`)
+   - **Name**: Secret identifier which contains service name and lower case variable with dashes instead of underscores (e.g., `homepage-connection-timeout`)
    - **Value**: Your secret value
    - Click **Create**
 5. Copy the **Secret Identifier** (URI)
 
 6. Navigate to your **App Configuration** resource
 7. Go to **Configuration Explorer**
-8. Click **+ Create** → **Key-value**
+8. Click **+ Create** → **Key Vault Reference**
 9. Enter:
-   - **Key**: A descriptive name (e.g., `AppSettings:DbPassword`)
-   - **Value**: Paste the Key Vault secret reference in the format:
-     ```
-     {"uri":"https://your-keyvault.vault.azure.net/secrets/DbPassword/version"}
-     ```
-   - **Content type**: Select **`application/vnd.microsoft.appconfig.keyvaulturi+json`** from the dropdown
-   - **Labels** (optional): Use for environment segmentation
+   - **Key**: The same name as in the App itself (e.g., `TEAMS_WEBHOOK_URL`)
+   - **Labels**: Use for environment and apps segmentation (e.g., `name-service-prod`, `name-func-test`)
+   - **Subscription**: use appropriate subscription for your app
+   - **Resource group**: use resource group which contains your Key Vault
+   - **Key Vault**: select a Key Vault 
+   - **Secret**: select the secret you've previously created
 10. Click **Apply**
 
 **Example Key Vault Reference:**
 ```json
 {
-  "uri": "https://your-keyvault.vault.azure.net/secrets/DbPassword/abc123def456"
+  "uri": "https://your-keyvault.vault.azure.net/secrets/service-db-password"
 }
 ```
 
