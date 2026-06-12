@@ -92,7 +92,10 @@ APP_ENVIRONMENT = "prod"
 
 Your Web App or Function App needs access to both App Configuration and Key Vault.
 
+**DevOps Engineers are responsible for this part! In case of inproper access management or roles assignment let them know and handle it.**
+
 #### Grant Access to App Configuration
+
 
 1. Navigate to your **App Configuration** resource
 2. Go to **Access control (IAM)**
@@ -110,95 +113,26 @@ Your Web App or Function App needs access to both App Configuration and Key Vaul
 5. Assign to: Your Web App or Function App managed identity
 6. Click **Review + assign**
 
-> **Important**: Ensure your Web App or Function App has a **System-assigned Managed Identity** enabled:
-> - Navigate to your Web App/Function App
-> - Go to **Identity** in the left menu
-> - Under **System assigned**, toggle to **On**
-> - Click **Save**
+> **Important**: Ensure your Web App or Function App has Key Vault Reference Identity assigned via Azure CLI:
+```
+az webapp/functionapp update --resource-group <group-name> --name <app-name> --set keyVaultReferenceIdentity={identityResourceId}
+```
+
+You can find you Managed Identity ResourceID in Overview -> top right corner -> JSON view.
 
 ### Step 3: Configure App Service/Function App to Use App Configuration
 
 Your application needs to know where to find App Configuration at startup.
 
-#### Option A: Using Application Settings (Recommended)
-
 1. Navigate to your **Web App** or **Function App**
-2. Go to **Configuration** → **Application settings**
-3. Click **+ New application setting**
-4. Create a setting named: **`AppConfig:Endpoint`**
-5. Set the value to your App Configuration endpoint (e.g., `https://your-appconfig.azconfig.io`)
-6. Click **OK**
-7. Click **Save** at the top
-
-#### Option B: Using Connection String
-
-Alternatively, you can use a connection string:
-
-1. Navigate to your **Web App** or **Function App**
-2. Go to **Configuration** → **Connection strings**
-3. Click **+ New connection string**
-4. Enter:
-   - **Name**: `AppConfig`
-   - **Value**: Your App Configuration connection string
-   - **Type**: `Custom`
-5. Click **OK**
-6. Click **Save** at the top
-
-### Step 4: Application Code Integration
-
-Your application code needs to load configuration from App Configuration at startup.
-
-#### For .NET Applications
-
-Update your `Program.cs` or `Startup.cs`:
-
-```csharp
-using Azure.Identity;
-using Azure.Data.AppConfiguration;
-
-// In your configuration builder setup
-var configBuilder = new ConfigurationBuilder()
-    .AddJsonFile("appsettings.json")
-    .AddJsonFile($"appsettings.{environment}.json", optional: true);
-
-// Add App Configuration provider
-var appConfigEndpoint = Environment.GetEnvironmentVariable("AppConfig:Endpoint");
-if (!string.IsNullOrEmpty(appConfigEndpoint))
-{
-    configBuilder.AddAzureAppConfiguration(options =>
-    {
-        options.Connect(new Uri(appConfigEndpoint), new DefaultAzureCredential())
-               .Select(KeyFilter.Any, LabelFilter.Null)  // Load all keys with no label
-               .ConfigureKeyVaultSecretProvider(secret =>
-               {
-                   secret.SetCredential(new DefaultAzureCredential());
-               });
-    });
-}
-
-var config = configBuilder.Build();
+2. Go to **Settings** → **Environment variables**
+3. Click **+Add** at App Settings
+4. Set a name: **`TEAMS_WEBHOOK_URL`**
+5. Set the value to your App Configuration endpoint using template 
 ```
-
-#### For Node.js Applications
-
-```javascript
-const { AppConfigurationClient } = require("@azure/app-configuration");
-const { DefaultAzureCredential } = require("@azure/identity");
-
-const endpoint = process.env.AppConfig__Endpoint;
-const client = new AppConfigurationClient(endpoint, new DefaultAzureCredential());
-
-async function loadConfiguration() {
-  const settings = await client.listConfigurationSettings();
-  const config = {};
-  
-  for await (const setting of settings) {
-    config[setting.key] = setting.value;
-  }
-  
-  return config;
-}
+@Microsoft.AppConfiguration(Endpoint=https://myAppConfigStore.azconfig.io; Key=myAppConfigKey; Label=myKeyLabel)
 ```
+6. Click **Apply**
 
 ## Best Practices
 
@@ -208,7 +142,7 @@ async function loadConfiguration() {
 - **Store all secrets in Key Vault**, not in App Configuration directly
 - **Use labels** in App Configuration to organize settings by environment
 - **Separate concerns**: Plain config in App Configuration, secrets in Key Vault
-- **Use descriptive key names** with hierarchical structure (e.g., `AppSettings:Security:JwtSecret`)
+- **Use descriptive key names** (e.g., `CATALOG_SERVICE_BASE_URL`)
 - **Audit access** to Key Vault and App Configuration
 - **Rotate secrets regularly** and update references as needed
 - **Version your configurations** using labels for rollback capability
@@ -251,18 +185,12 @@ async function loadConfiguration() {
 
 **Solution**:
 1. Verify the Key Vault reference format: `{"uri":"https://..."}`
-2. Check that the Content type is set to `application/vnd.microsoft.appconfig.keyvaulturi+json`
-3. Ensure the secret exists in Key Vault with the correct name
-4. Verify the Key Vault URI includes the secret version
+2. Ensure the secret exists in Key Vault with the correct name
+3. Verify the Key Vault URI includes the secret version
 
 ### Issue: Application restarts after configuration changes
 
 **Cause**: This is expected behavior - configuration is typically loaded at application startup.
-
-**Solution**:
-1. Implement configuration refresh polling to reload settings without restarting
-2. Or manually restart the app through the Azure Portal
-3. Consider using Azure App Configuration feature flags for dynamic behavior changes
 
 ## Summary
 
